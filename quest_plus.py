@@ -23,7 +23,7 @@ def reformat_params(params):
 class QuestPlus(object):
     def __init__(self, stim, params, function=weibull):
         self.function = function
-        self.stim_domain = stim
+        self.stim_domain = reformat_params(stim)
         self.param_domain = reformat_params(params)
 
         self._orig_params = deepcopy(params)
@@ -52,47 +52,43 @@ class QuestPlus(object):
         self.resp_history = list()
         self.entropy = np.ones(n_stim)
 
-    def update(self, contrast, ifcorrect, approximate=False):
+    def update(self, stim_values, ifcorrect):
         '''Update posterior probability with outcome of current trial.
 
-        contrast - contrast value for the given trial
+        stim_values - stimulus parameter values for the given trial
         ifcorrect   - whether response was correct or not
                       1 - correct, 0 - incorrect
         '''
 
         # turn ifcorrect to response index
         resp_idx = 1 - ifcorrect
-        contrast_idx = self._find_contrast_index(
-            contrast,  approximate=approximate)[0]
+        stim_idx = self._find_stim_index(stim_values)[0]
 
         # take likelihood of such resp for whole model parameter domain
-        likelihood = self.likelihoods[contrast_idx, :, resp_idx]
+        likelihood = self.likelihoods[stim_idx, :, resp_idx]
         self.posterior *= likelihood
         self.posterior /= self.posterior.sum()
 
-        # log history of contrasts and responses
-        self.stim_history.append(contrast)
+        # log history of stimParams and responses
+        self.stim_history.append(stim_values)
         self.resp_history.append(ifcorrect)
 
-    def _find_contrast_index(self, contrast, approximate=False):
-        contrast = np.atleast_1d(contrast)
-        if not approximate:
-            idx = [np.nonzero(self.stim_domain == cntrst)[0][0]
-                   for cntrst in contrast]
-        else:
-            idx = np.abs(self.stim_domain[np.newaxis, :] -
-                         contrast[:, np.newaxis]).argmin(axis=1)
+    def _find_stim_index(self, stim_values):
+        stim_values = np.atleast_1d(stim_values)
+        idx = [np.nonzero(self.stim_domain == stimConfig)[0][0]
+                for stimConfig in stim_values]
+
         return idx
 
-    def next_contrast(self, axis=None):
-        '''Get contrast value minimizing entropy of the posterior
+    def next_stim(self, axis=None):
+        '''Get stimulus values minimizing entropy of the posterior
         distribution.
 
         Expected entropy is updated in self.entropy.
 
         Returns
         -------
-        contrast : contrast value for the next trial.'''
+        stim_values : stimulus values for the next trial.'''
         full_posterior = self.likelihoods * self.posterior[
             np.newaxis, :, np.newaxis]
         if axis is not None:
@@ -109,7 +105,7 @@ class QuestPlus(object):
         H = -np.nansum(full_posterior * np.log(full_posterior), axis=1)
         self.entropy = (norm[:, 0, :] * H).sum(axis=1)
 
-        # choose contrast with minimal entropy
+        # choose stimulus with minimal entropy
         return self.stim_domain[self.entropy.argmin()]
 
     def get_posterior(self):
@@ -124,9 +120,9 @@ class QuestPlus(object):
             return (self.posterior[:, np.newaxis] *
                     self.param_domain).sum(axis=0)
 
-    def fit(self, contrasts, responses, approximate=False):
-        for contrast, response in zip(contrasts, responses):
-            self.update(contrast, response, approximate=approximate)
+    def fit(self, stim_values, responses):
+        for stim_config, response in zip(stim_values, responses):
+            self.update(stim_config, response)
 
     def plot(self):
         '''Plot posterior model parameter probabilities and weibull fits.'''
