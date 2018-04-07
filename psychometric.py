@@ -40,16 +40,12 @@ def csf_watson_and_ahumada(stim_values, params, slope=3, guess=0.5, lapse=0.1):
         t, c0, cf = params
         cw = 0
 
-    stim_values = np.asarray(stim_values)
-
     frequency, contrast = stim_values.T
-    frequency = np.atleast_1d(frequency)
-    contrast = np.atleast_1d(contrast)
 
-    min_thresh = np.asarray(len(contrast) * [t])
+    min_thresh = np.ones(len(contrast)) * t
     threshold = c0 + cf * frequency + cw * contrast
 
-    threshold = np.amax([min_thresh, threshold], 0)
+    threshold = np.max([min_thresh, threshold], 0)
 
     return (1 - lapse) - (1 - lapse - guess) * np.exp(
         -10. ** (slope * (contrast - threshold) / 20.))
