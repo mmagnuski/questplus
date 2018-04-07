@@ -6,6 +6,7 @@ import pandas as pd
 
 from psychometric import weibull
 
+
 def reformat_params(params):
     '''Unroll multiple lists into array of their products.'''
     if isinstance(params, list):
