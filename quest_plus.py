@@ -41,10 +41,10 @@ class QuestPlus(object):
             self.likelihoods[:, p, 0] = self.function(self.stim_domain,
                                                       self.param_domain[p, :])
 
-        # assumes (correct, incorrect) responses
+        # FIXME assumes (correct, incorrect) responses
         self.likelihoods[:, :, 1] = 1. - self.likelihoods[:, :, 0]
 
-        # we also assume a flat prior (so we init posterior to flat too)
+        # FIXME we also assume a flat prior (so we init posterior to flat too)
         self.posterior = np.ones(n_param)
         self.posterior /= self.posterior.sum()
 
